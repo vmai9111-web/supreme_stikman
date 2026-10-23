@@ -1,1 +1,43 @@
+name: Decompile APK
 
+on:
+  push:
+    paths:
+      - '**.apk' # Tự động chạy khi bạn upload file .apk vào repo
+
+jobs:
+  decompile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install JADX
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jadx
+
+      - name: Run JADX Decompiler
+        run: |
+          # Tìm file apk trong thư mục và dịch ngược ra thư mục 'source_code'
+          APK_FILE=$(find . -maxdepth 1 -name "*.apk" | head -n 1)
+          if [ -n "$APK_FILE" ]; then
+            echo "Decompiling $APK_FILE..."
+            jadx -d source_code "$APK_FILE"
+          else
+            echo "No APK file found!"
+            exit 1
+          fi
+
+      - name: Commit and push decompiled code
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Auto-decompile APK to source code"
+          branch: main
+          create_branch: false
